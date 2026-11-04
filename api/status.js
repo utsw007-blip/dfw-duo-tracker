@@ -1,9 +1,9 @@
 // Vercel serverless function: GET /api/status
-// Asks Apple's public pickup data about one part number near each DFW store,
-// then returns ready / not ready for the five DFW stores.
+// Asks Apple's public pickup data about one part number near NorthPark (75225),
+// which lists all five DFW stores, and returns ready / not ready for each.
 
 const PART = process.env.DUO_PART || "MK1E4LL/A"; // iPhone Duo, Star White, 256GB (US)
-const ZIPS = ["75225", "75240", "76092", "76107"]; // NorthPark/Knox, Galleria, Southlake, Fort Worth
+const ZIP = "75225";
 const STORES = [
   { key: "knox", test: /knox/i },
   { key: "northpark", test: /northpark/i },
@@ -12,7 +12,7 @@ const STORES = [
   { key: "universitypark", test: /university park/i },
 ];
 
-async function lookup(zip) {
+async function lookup() {
   const qs = new URLSearchParams({
     fae: "true",
     little: "false",
@@ -21,32 +21,38 @@ async function lookup(zip) {
     "mts.1": "compact",
     "parts.0": PART,
     searchNearby: "true",
-    location: zip,
+    location: ZIP,
   });
   const r = await fetch("https://www.apple.com/shop/fulfillment-messages?" + qs, {
     headers: {
-      accept: "application/json",
+      accept: "application/json, text/javascript, */*; q=0.01",
+      "accept-language": "en-US,en;q=0.9",
+      referer: "https://www.apple.com/shop/buy-iphone",
+      "x-requested-with": "XMLHttpRequest",
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "same-origin",
       "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     },
   });
-  if (!r.ok) throw new Error("Apple returned " + r.status);
+  if (!r.ok) {
+    const t = (await r.text()).replace(/\s+/g, " ").slice(0, 200);
+    throw new Error("Apple returned " + r.status + (t ? ": " + t : ""));
+  }
   const j = await r.json();
   const c = j && j.body && j.body.content;
   return (c && c.pickupMessage && c.pickupMessage.stores) || [];
 }
 
 module.exports = async (req, res) => {
-  const results = await Promise.allSettled(ZIPS.map(lookup));
-  const ok = results.filter((r) => r.status === "fulfilled");
-  if (!ok.length) {
-    res.status(502).json({ error: "Could not reach Apple", detail: String(results[0].reason) });
+  let all;
+  try {
+    all = await lookup();
+  } catch (e) {
+    res.status(502).json({ error: "Could not reach Apple", detail: String(e) });
     return;
   }
-
-  const seen = new Map();
-  ok.forEach((r) => r.value.forEach((s) => seen.set(s.storeNumber || s.storeName, s)));
-  const all = [...seen.values()];
 
   const stores = [];
   const missing = [];
@@ -66,7 +72,5 @@ module.exports = async (req, res) => {
 
   // Many visitors share one Apple lookup every ~5 seconds.
   res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
-  const body = { part: PART, updatedAt: new Date().toISOString(), stores, missing };
-  if (req.query && req.query.debug) body.debugSample = all[0] || null;
-  res.status(200).json(body);
+  res.status(200).json({ part: PART, updatedAt: new Date().toISOString(), stores, missing });
 };
