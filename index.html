@@ -71,6 +71,7 @@ section{margin-top:44px}
     <div><b id="sWatched">5</b><span>Stores watched</span></div>
     <div><b>5s</b><span>Checked every</span></div>
     <div><b id="sTypical">—</b><span>Typical drop lasts</span></div>
+    <div><b id="sLast">—</b><span id="sLastSub">Last restock</span></div>
   </div>
   </div>
 
@@ -184,6 +185,7 @@ function render(){
   else{h.textContent="Nothing on the shelves.";sub.textContent="We’re checking all "+STORES.length+" DFW stores every 5 seconds. You’ll know first."}
   document.getElementById("conn").textContent=err?"Reconnecting":loaded?"Live":"Connecting";
   stats()}
+function ago(ms){var m=Math.round(ms/60000);if(m<1)return"just now";if(m<60)return m+"m ago";var h=Math.floor(m/60);if(h<48)return h+"h "+(m%60)+"m ago";return Math.floor(h/24)+" days ago"}
 function stats(){
   var wk=drops.filter(function(d){return NOW-d.at<7*864e5&&d.life!==null});
   var lives=wk.map(function(d){return d.life}).sort(function(a,b){return a-b});
@@ -192,6 +194,9 @@ function stats(){
   document.getElementById("hStores").textContent=new Set(wk.map(function(d){return d.s})).size+"/"+STORES.length;
   document.getElementById("hMedian").textContent=med?dur(med):"—";
   document.getElementById("sTypical").textContent=med?"~"+dur(med):"—";
+  var L=drops[0];
+  document.getElementById("sLast").textContent=L?(L.life===null?"Now":ago(NOW-L.at)):"None yet";
+  document.getElementById("sLastSub").textContent=L?"Last restock · "+STORES[L.s].n+", "+fmtD(L.at)+" "+fmtT(L.at):"Last restock seen";
   var hrs=new Array(24).fill(0);
   drops.forEach(function(d){if(NOW-d.at<30*864e5)hrs[cHour(d.at)]++});
   var mx=Math.max.apply(null,hrs)||1;
