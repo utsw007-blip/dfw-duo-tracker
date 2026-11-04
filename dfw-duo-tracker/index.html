@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DFW Duo Tracker — iPhone Duo pickup radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap">
+<style>
+:root{--bg:#f6f4f1;--panel:#fff;--ink:#16181f;--mute:#667;--line:#e2ddd6;--ready:#e8491d;--recent:#3a5bd9;--sold:#a9a6a0;--ring:#d8d3cb;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1220;--panel:#171b2e;--ink:#eef0f7;--mute:#9aa0b8;--line:#272c45;--ready:#ff7a4d;--recent:#7f9bff;--sold:#505672;--ring:#2a3050}}
+:root[data-theme="dark"]{--bg:#0f1220;--panel:#171b2e;--ink:#eef0f7;--mute:#9aa0b8;--line:#272c45;--ready:#ff7a4d;--recent:#7f9bff;--sold:#505672;--ring:#2a3050}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 18px 48px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.01em}
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:5px 12px;border:1px solid var(--line);border-radius:99px;background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ready);animation:p 2s infinite}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}.sweep{display:none}}
+.hero{padding:34px 0 22px}
+.hero small{color:var(--mute);font-size:14px}
+h1{font-size:clamp(34px,7vw,64px);line-height:1;letter-spacing:-.03em;margin:8px 0 10px;font-weight:800}
+h2{font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
+.sub{color:var(--mute);margin:0;max-width:56ch}
+.stats{display:flex;gap:28px;margin:22px 0 0;flex-wrap:wrap}
+.stats b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.stats span{font-size:13px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:10px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;color:inherit;font:inherit;text-align:left;width:100%}
+.row:last-child{border-bottom:0}
+.row:focus-visible{outline:2px solid var(--recent);outline-offset:2px}
+.row.sel{background:color-mix(in srgb,var(--recent) 10%,transparent)}
+.row .n{flex:1;min-width:0}.row .n b{display:block;font-weight:600}.row .n span{font-size:13px;color:var(--mute)}
+.tag{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;color:#fff;white-space:nowrap}
+.tag.ready{background:var(--ready)}.tag.recent{background:var(--recent)}.tag.sold{background:var(--sold)}
+section{margin-top:44px}
+.btn{font:600 15px inherit;font-family:inherit;border:0;border-radius:12px;padding:11px 18px;background:var(--ink);color:var(--bg);cursor:pointer;margin-top:12px}
+.btn:focus-visible{outline:2px solid var(--recent);outline-offset:2px}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.log{max-height:320px;overflow:auto}
+.hist{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:10px}
+.hist div{flex:1;background:var(--ready);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.axis{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-top:4px}
+.note{font-size:13px;color:var(--mute);margin-top:34px;border-top:1px solid var(--line);padding-top:16px}
+.demo{background:color-mix(in srgb,var(--ready) 12%,transparent);border:1px solid color-mix(in srgb,var(--ready) 40%,transparent);border-radius:12px;padding:10px 14px;font-size:14px;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="brand">DFW Duo Tracker</div>
+  <div class="pill"><span class="dot"></span><span id="conn">Scanning</span></div>
+</header>
+
+<div class="hero">
+  <small>iPhone Duo · Star White · 256GB · In-store pickup · Dallas–Fort Worth</small>
+  <h1 id="headline">Scanning the Metroplex…</h1>
+  <p class="sub" id="subline">Checking all five Apple Stores from Fort Worth to Dallas.</p>
+  <div class="stats">
+    <div><b id="sWatched">5</b><span>Stores watched</span></div>
+    <div><b>5s</b><span>Checked every</span></div>
+    <div><b id="sTypical">—</b><span>Typical drop lasts</span></div>
+  </div>
+  </div>
+
+<div class="grid">
+  <div class="card">
+    <svg viewBox="0 0 400 400" id="radar" role="img" aria-label="Radar map of DFW Apple Stores">
+      <defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--ready)" stop-opacity="0"/><stop offset="1" stop-color="var(--ready)" stop-opacity=".35"/></linearGradient></defs>
+      <g id="rings"></g>
+      <g class="sweep"><path d="M200 200 L200 20 A180 180 0 0 1 300 50 Z" fill="url(#sw)"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="8s" repeatCount="indefinite"/></path></g>
+      <g id="pins"></g>
+    </svg>
+    <div class="legend"><span><i style="background:var(--ready)"></i>Ready for pickup</span><span><i style="background:var(--recent)"></i>Dropped in last 3h</span><span><i style="background:var(--sold)"></i>Sold out</span></div>
+  </div>
+  <div class="card">
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<section class="two">
+  <div class="card">
+    <h2>Get pinged.</h2>
+    <p class="sub">A notification on this device the moment the Star White 256GB Duo is ready for pickup at any DFW store.</p>
+    <button class="btn" id="alertBtn">Turn on alerts</button>
+    <p class="sub" id="alertMsg" style="margin-top:10px;font-size:14px"></p>
+  </div>
+  <div class="card">
+    <h2>Buy in seconds.</h2>
+    <p class="sub">Tap a store to see its status, then open the Apple Store app where you’re already signed in with Apple Pay. Choose Star White and 256GB, add to bag, check out.</p>
+    <button class="btn alt" id="openBtn">Open Apple Store page</button>
+  </div>
+</section>
+
+<section>
+  <h2>Every drop, logged.</h2>
+  <p class="sub">Each time a store flips to ready for pickup, it lands here with how long it lasted. Use it to learn when DFW stores restock.</p>
+  <div class="stats">
+    <div><b id="hDrops">—</b><span>Drops · 7 days</span></div>
+    <div><b id="hStores">—</b><span>Stores hit</span></div>
+    <div><b id="hMedian">—</b><span>Median life</span></div>
+  </div>
+  <div class="grid">
+    <div class="card"><b>When drops land</b> <span style="color:var(--mute);font-size:13px">Central time · 30 days</span>
+      <div class="hist" id="hist"></div>
+      <div class="axis"><span>12a</span><span>6a</span><span>12p</span><span>6p</span></div></div>
+    <div class="card log"><div class="list" id="log"></div></div>
+  </div>
+</section>
+
+<p class="note">Not affiliated with Apple. Availability changes by the second. Always confirm at checkout on apple.com. Drops are logged in this browser while the page is open.</p>
+</main>
+
+<script>
+var STORES=[
+ {k:"northpark",n:"NorthPark Center",a:"Dallas",lat:32.8685,lon:-96.7737},
+ {k:"knox",n:"Knox Street",a:"Dallas",lat:32.8240,lon:-96.7918},
+ {k:"galleria",n:"Galleria Dallas",a:"Dallas",lat:32.9305,lon:-96.8200},
+ {k:"southlake",n:"Southlake Town Square",a:"Southlake",lat:32.9410,lon:-97.1330},
+ {k:"universitypark",n:"University Park Village",a:"Fort Worth",lat:32.7276,lon:-97.3636}
+];
+var HR=3*3600e3,NOW=Date.now(),drops=[],sel=0,notify=false,first=true,loaded=false,err=false;
+var LAT0=32.85,LON0=-96.95,PX=6;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function fmtT(t){try{return new Date(t).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"})}catch(e){return new Date(t).toLocaleTimeString()}}
+function fmtD(t){try{return new Date(t).toLocaleDateString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric"})}catch(e){return ""}}
+function cHour(t){try{return +new Date(t).toLocaleString("en-US",{timeZone:"America/Chicago",hour:"numeric",hour12:false})%24}catch(e){return new Date(t).getHours()}}
+function dur(ms){var m=Math.round(ms/60000);return m<60?m+"m":Math.floor(m/60)+"h "+(m%60)+"m"}
+try{drops=JSON.parse(localStorage.getItem("dfwduo")||"[]").filter(function(d){return d.life!==null})}catch(e){drops=[]}
+function save(){try{localStorage.setItem("dfwduo",JSON.stringify(drops.slice(0,300)))}catch(e){}}
+STORES.forEach(function(s){s.ready=false;s.since=0});
+function status(i){var s=STORES[i];if(s.ready)return"ready";
+  var last=drops.find(function(d){return d.s===i});
+  return last&&NOW-last.at<HR?"recent":"sold"}
+function fetchStatus(){
+  return fetch("/api/status",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+    (j.stores||[]).forEach(function(x){
+      var i=STORES.findIndex(function(s){return s.k===x.key});if(i<0)return;
+      var s=STORES[i];
+      if(x.ready&&!s.ready){s.ready=true;s.since=Date.now();drops.unshift({s:i,at:s.since,life:null});fire(i)}
+      else if(!x.ready&&s.ready){s.ready=false;var d=drops.find(function(z){return z.s===i&&z.life===null});if(d)d.life=Date.now()-d.at}
+    });
+    err=false;loaded=true;save()
+  }).catch(function(){err=true})
+}
+function fire(i){
+  if(!notify)return;
+  try{new Notification("Duo Star White 256GB ready at "+STORES[i].n,{body:"Pickup available now in "+STORES[i].a+"."})}catch(e){}
+}
+function mi(s){return[(s.lon-LON0)*Math.cos(LAT0*Math.PI/180)*69.17,(s.lat-LAT0)*69]}
+function drawRings(){
+  var g="";[10,20,30].forEach(function(m){
+    g+='<circle cx="200" cy="200" r="'+m*PX+'" fill="none" stroke="var(--ring)" stroke-dasharray="3 5"/><text x="'+(204)+'" y="'+(200-m*PX-4)+'" font-size="11" fill="var(--mute)">'+m+' mi</text>'});
+  g+='<text x="200" y="372" text-anchor="middle" font-size="12" fill="var(--mute)">Fort Worth ← → Dallas · centered on Dallas–Fort Worth</text>';
+  document.getElementById("rings").innerHTML=g}
+function render(){
+  NOW=Date.now();
+  var pins="",list="",nReady=0;
+  STORES.forEach(function(s,i){
+    var st=status(i),c=st==="ready"?"var(--ready)":st==="recent"?"var(--recent)":"var(--sold)",p=mi(s),x=200+p[0]*PX,y=200-p[1]*PX;
+    if(st==="ready")nReady++;
+    pins+='<g style="cursor:pointer" onclick="pick('+i+')">'+(st==="ready"?'<circle cx="'+x+'" cy="'+y+'" r="13" fill="'+c+'" opacity=".25"/>':'')+
+      '<circle cx="'+x+'" cy="'+y+'" r="'+(i===sel?8:6)+'" fill="'+c+'" stroke="var(--panel)" stroke-width="2"/>'+
+      (i===sel?'<text x="'+x+'" y="'+(y-14)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">'+s.n+'</text>':'')+'</g>';
+    var lbl=st==="ready"?"Ready":st==="recent"?"Recent":"Sold out";
+    var last=drops.find(function(d){return d.s===i});
+    var meta=s.a+(st==="ready"?" · up for "+dur(NOW-s.since):last?" · last drop "+fmtT(last.at):"");
+    list+='<button class="row'+(i===sel?" sel":"")+'" onclick="pick('+i+')"><div class="n"><b>'+s.n+'</b><span>'+meta+'</span></div><span class="tag '+st+'">'+lbl+'</span></button>'});
+  document.getElementById("pins").innerHTML=pins;
+  document.getElementById("list").innerHTML=list;
+  var h=document.getElementById("headline"),sub=document.getElementById("subline");
+  if(!loaded){h.textContent="Scanning the Metroplex…";sub.textContent="Checking all five Apple Stores from Fort Worth to Dallas."}else if(nReady){h.textContent=nReady+(nReady>1?" stores have":" store has")+" Star White 256GB ready.";sub.textContent="Tap a store to inspect it, then head straight to checkout."}
+  else{h.textContent="Nothing on the shelves.";sub.textContent="We’re checking all "+STORES.length+" DFW stores every 5 seconds. You’ll know first."}
+  document.getElementById("conn").textContent=err?"Reconnecting":loaded?"Live":"Connecting";
+  stats()}
+function stats(){
+  var wk=drops.filter(function(d){return NOW-d.at<7*864e5&&d.life!==null});
+  var lives=wk.map(function(d){return d.life}).sort(function(a,b){return a-b});
+  var med=lives.length?lives[Math.floor(lives.length/2)]:0;
+  document.getElementById("hDrops").textContent=wk.length;
+  document.getElementById("hStores").textContent=new Set(wk.map(function(d){return d.s})).size+"/"+STORES.length;
+  document.getElementById("hMedian").textContent=med?dur(med):"—";
+  document.getElementById("sTypical").textContent=med?"~"+dur(med):"—";
+  var hrs=new Array(24).fill(0);
+  drops.forEach(function(d){if(NOW-d.at<30*864e5)hrs[cHour(d.at)]++});
+  var mx=Math.max.apply(null,hrs)||1;
+  document.getElementById("hist").innerHTML=hrs.map(function(v,h){return'<div title="'+v+' drops" style="height:'+Math.max(2,v/mx*100)+'%"></div>'}).join("");
+  document.getElementById("log").innerHTML=drops.slice(0,40).map(function(d){
+    return'<div class="row" style="cursor:default"><div class="n"><b>'+STORES[d.s].n+'</b><span>'+fmtD(d.at)+' · '+fmtT(d.at)+'</span></div><span class="tag '+(d.life===null?"ready":"sold")+'">'+(d.life===null?"Live":dur(d.life))+'</span></div>'}).join("")}
+function pick(i){sel=i;render()}
+window.pick=pick;
+document.getElementById("alertBtn").onclick=function(){
+  var m=document.getElementById("alertMsg"),b=this;
+  if(notify){notify=false;b.textContent="Turn on alerts";m.textContent="Alerts are off.";return}
+  try{
+    if(!("Notification" in window)){m.textContent="This browser doesn’t support notifications.";return}
+    Notification.requestPermission().then(function(p){
+      if(p==="granted"){notify=true;b.textContent="Turn off alerts";m.textContent="Alerts are on while this tab stays open."}
+      else m.textContent="Notifications are blocked. Allow them in your browser settings, then try again."})
+  }catch(e){m.textContent="Notifications aren’t available here. Open this page in its own tab and try again."}};
+document.getElementById("openBtn").onclick=function(){window.open("https://www.apple.com/shop/buy-iphone","_blank","noopener")};
+drawRings();render();fetchStatus().then(render);
+setInterval(function(){fetchStatus().then(render)},5000);
+</script>
+</body>
+</html>
